@@ -21,6 +21,7 @@
 import pickle
 from tkinter import *
 from tkinter import messagebox
+import atg_import
 
 PROGRAM_NAME = 'AXI Traffic Generator'
 MAX_ROWS = 25
@@ -152,9 +153,9 @@ class Application:
         self.loadButton.grid(row=0, column=1, padx=20)
         self.saveButton = Button(buttons_frame, text='Save', command=self.saveFile)
         self.saveButton.grid(row=0, column=2, padx=20)
-        self.dumpButton = Button(buttons_frame, text='Export', command=self.dumpCoe)
+        self.dumpButton = Button(buttons_frame, text='Export', command=self.exportCoe)
         self.dumpButton.grid(row=0, column=3, padx=20)
-        self.readButton = Button(buttons_frame, text='Import', command=self.help_dialog)
+        self.readButton = Button(buttons_frame, text='Import', command=self.import_dialog)
         self.readButton.grid(row=0, column=4, padx=20)
         self.helpButton = Button(buttons_frame, text='Help', command=self.help_dialog)
         self.helpButton.grid(row=0, column=5, padx=20)
@@ -181,10 +182,13 @@ class Application:
                     continue
                 if 'memory' in line:
                     continue
+                if ';' in line:
+                    continue
                 array.append(line.strip())
         return array
 
     def writeCoe(self, filetype, array):
+        """ Write <filetype>.coe file from array content """
         with open(filetype+'.coe', 'wb') as f:
             f.write('memory_initialization_radix = 16;\n'.encode())
             f.write('memory_initialization_vector =\n'.encode())
@@ -194,6 +198,7 @@ class Application:
             f.write(';\n'.encode())
 
     def row_to_ctrl(self, row):
+        """ Merge fields into control word """
         ctrl = (row['goto_ok'].get() << 8) + row['goto_err'].get()
         if row['read_write'].get() == False:
             ctrl = ctrl + (1 << 16)
@@ -202,7 +207,17 @@ class Application:
         ret = "{0:08x}".format(ctrl)
         return ret
 
-    def dumpCoe(self):
+    def ctrl_to_row(self, string):
+        """ Parse control string into fields dict """
+        val = int(string, 16)
+        row = {}
+        row['goto_err'] = val & 0xFF
+        row['goto_ok'] = (val >> 8) & 0xFF
+        row['read_write'] = (val & 0x10000) >> 16
+        row['inc_error'] = ((val & 0x20000) >> 17 == 1)
+        return row
+
+    def exportCoe(self):
         addr_db = []
         data_db = []
         mask_db = []
@@ -252,11 +267,28 @@ class Application:
                 self.rows[i]['goto_err'].set(sav[i]['goto_err'])
 
     def help_dialog(self):
-        array = self.readCoe('addr.coe')
-        for i in range(MAX_ROWS):
-            self.rows[i]['address'].set(array[i])
+        messagebox.showinfo("Help", self.help_text)
 
-        #messagebox.showinfo("Help", self.help_text)
+    def import_dialog(self):
+        dialog = atg_import.ATG_Import(self.root, 'File import')
+        if not dialog.result:
+            return
+        column=dialog.result['column']
+        filename=dialog.result['filename']
+        array = self.readCoe(filename)
+        i=0
+        for item in array:
+            if i >= MAX_ROWS:
+                break
+            if column == 'control':         # Special handling for Control file
+                row = self.ctrl_to_row(item)
+                self.rows[i]['goto_ok'].set(row['goto_ok'])
+                self.rows[i]['goto_err'].set(row['goto_err'])
+                self.rows[i]['inc_error'].set(row['inc_error'])
+                self.rows[i]['read_write'].set(row['read_write'])
+            else:
+                self.rows[i][column].set(item)
+            i=i+1
 
 if __name__ == '__main__':
     root = Tk()
