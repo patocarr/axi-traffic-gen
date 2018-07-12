@@ -22,18 +22,28 @@ class Application:
         self.rows = [ \
                 { \
                 'check': 0, \
-                'is_read': 0, \
+                'read_write': 0, \
                 'ok_next_addr': 0, \
                 'err_next_addr': 0, \
                 'address': 0, \
                 'data': 0, \
-                'expdata': 0, \
-                'mask': 0 \
+                'mask': 0, \
+                'inc_error': 0, \
+                'goto_ok': 0, \
+                'goto_err': 0 \
                 } \
                 for k in range(MAX_ROWS)]
 
-    def callback(self, event):
-        print (event)
+    def on_read_checkbox(self, var):
+        def event_handler(event):
+            self.process_checkbox(var)
+        return event_handler
+
+    def process_checkbox(self, idx):
+        val = self.rows[idx]['read_write'].get()
+        if val == False:
+            mask_var = self.rows[idx]['mask']
+            mask_var.set("blah")
 
     def createWidgets(self):
         type_frame = Frame(self.root, height=15, bd=5, relief=GROOVE, padx=5, pady=5)
@@ -49,38 +59,70 @@ class Application:
         Label(text_frame, text="Entry").grid(column=0,row=0)
         Label(text_frame, text="Address").grid(column=1,row=0)
         Label(text_frame, text="Data").grid(column=2,row=0)
-        Label(text_frame, text="Read?").grid(column=3,row=0)
-        Label(text_frame, text="Expected").grid(column=4,row=0)
+        Label(text_frame, text="Write").grid(column=3,row=0)
+        Label(text_frame, text="Read").grid(column=4,row=0)
         Label(text_frame, text="Mask").grid(column=5,row=0)
+        Label(text_frame, text="Count?").grid(column=6,row=0)
+        Label(text_frame, text="Goto Ok").grid(column=7,row=0)
+        Label(text_frame, text="Goto Error").grid(column=8,row=0)
 
         for i in range(MAX_ROWS):
             Label(text_frame, text=i).grid(column=0,row=i+5)
 
             self.rows[i]['address'] = StringVar()
             addr = Entry(text_frame, \
-                    textvariable=self.rows[i]['address'] \
+                    textvariable=self.rows[i]['address'], \
+                    width=10 \
                     ).grid(column=1,row=i+5)
 
             self.rows[i]['data'] = StringVar()
             data = Entry(text_frame,  \
-                    textvariable=self.rows[i]['data'] \
+                    textvariable=self.rows[i]['data'], \
+                    width=10 \
                     ).grid(column=2,row=i+5)
 
-            self.rows[i]['is_read'] = BooleanVar()
-            read = Checkbutton(text_frame, \
-                    variable=self.rows[i]['is_read'] \
-                    ).grid(column=3,row=i+5)
+            self.rows[i]['read_write'] = IntVar()
+            self.rows[i]['read_write'].set(1)
+            read = Radiobutton(text_frame, \
+                    value=1, \
+                    variable=self.rows[i]['read_write'] \
+                    )
+            #read.bind('<Button-1>', self.on_read_checkbox(i))  # TODO
+            read.grid(column=3,row=i+5)
 
-            self.rows[i]['expdata'] = StringVar()
-            data = Entry(text_frame,  \
-                    textvariable=self.rows[i]['expdata'] \
-                    ).grid(column=4,row=i+5)
+            read = Radiobutton(text_frame, \
+                    value=0, \
+                    variable=self.rows[i]['read_write'] \
+                    )
+            read.grid(column=4,row=i+5)
 
             self.rows[i]['mask'] = StringVar()
             data = Entry(text_frame,  \
-                    textvariable=self.rows[i]['mask'] \
+                    textvariable=self.rows[i]['mask'], \
+                    width=10 \
                     ).grid(column=5,row=i+5)
 
+            self.rows[i]['inc_error'] = BooleanVar()
+            self.rows[i]['inc_error'].set(True)
+            data = Checkbutton(text_frame,  \
+                    variable=self.rows[i]['inc_error'] \
+                    ).grid(column=6,row=i+5)
+
+            self.rows[i]['goto_ok'] = IntVar()
+            self.rows[i]['goto_ok'].set(i+1)
+            data = Entry(text_frame,  \
+                    textvariable=self.rows[i]['goto_ok'], \
+                    width=4, \
+                    ).grid(column=7,row=i+5)
+
+            self.rows[i]['goto_err'] = IntVar()
+            self.rows[i]['goto_err'].set(i)
+            data = Entry(text_frame,  \
+                    textvariable=self.rows[i]['goto_err'], \
+                    width=4, \
+                    ).grid(column=8,row=i+5)
+
+        self.rows[MAX_ROWS-1]['address'].set('0xFFFFFFFF')
         text_frame.grid(row=6, columnspan=5)
 
         buttons_frame = Frame(self.root, bd=5, relief=GROOVE, padx=5, pady=5)
@@ -90,7 +132,7 @@ class Application:
         self.loadButton.grid(row=0, column=1, padx=20)
         self.saveButton = Button(buttons_frame, text='Save', command=self.saveFile)
         self.saveButton.grid(row=0, column=2, padx=20)
-        self.dumpButton = Button(buttons_frame, text='Dump .coe', command=self.dumpCoe)
+        self.dumpButton = Button(buttons_frame, text='Export .coe', command=self.dumpCoe)
         self.dumpButton.grid(row=0, column=3, padx=20)
         buttons_frame.grid()
 
@@ -114,30 +156,43 @@ class Application:
                 f.write('\n'.encode())
             f.write(';\n'.encode())
 
+    def row_to_ctrl(self, row):
+        ctrl = (row['goto_ok'].get() << 8) + row['goto_err'].get()
+        if row['read_write'].get() == False:
+            ctrl = ctrl + (1 << 16)
+        if row['inc_error'].get() == True:
+            ctrl = ctrl + (1 << 17)
+        ret = "{0:08x}".format(ctrl)
+        return ret
+
     def dumpCoe(self):
         addr_db = []
         data_db = []
         mask_db = []
-        expdata_db = []
+        ctrl_db = []
         for i, row in enumerate(self.rows):
             addr_db.append(self.to_hex(row['address'].get()))
             data_db.append(self.to_hex(row['data'].get()))
             mask_db.append(self.to_hex(row['mask'].get()))
-            expdata_db.append(self.to_hex(row['expdata'].get()))
+            ctrl_db.append(self.row_to_ctrl(row))
 
         self.writeCoe('addr', addr_db)
         self.writeCoe('data', data_db)
         if self.axi_lite_type.get() > 0:
             self.writeCoe('mask', mask_db)
-            self.writeCoe('expdata', expdata_db)
+            self.writeCoe('ctrl', ctrl_db)
 
     def saveFile(self):
         sav = []
         for i in range(MAX_ROWS):
             sav.append({ \
-                    'address': self.rows[i]['address'].get(), \
-                    'data'   : self.rows[i]['data'].get(), \
-                    'is_read': self.rows[i]['is_read'].get() \
+                    'address'   : self.rows[i]['address'].get(), \
+                    'data'      : self.rows[i]['data'].get(), \
+                    'read_write': self.rows[i]['read_write'].get(), \
+                    'mask'      : self.rows[i]['mask'].get(), \
+                    'inc_error' : self.rows[i]['inc_error'].get(), \
+                    'goto_ok'   : self.rows[i]['goto_ok'].get(), \
+                    'goto_err'  : self.rows[i]['goto_err'].get() \
                     } \
                     )
             with open('data.pkl', 'wb') as f:
@@ -153,7 +208,11 @@ class Application:
             for i in range(MAX_ROWS):
                 self.rows[i]['address'].set(sav[i]['address'])
                 self.rows[i]['data'].set(sav[i]['data'])
-                self.rows[i]['is_read'].set(sav[i]['is_read'])
+                self.rows[i]['read_write'].set(sav[i]['read_write'])
+                self.rows[i]['mask'].set(sav[i]['mask'])
+                self.rows[i]['inc_error'].set(sav[i]['inc_error'])
+                self.rows[i]['goto_ok'].set(sav[i]['goto_ok'])
+                self.rows[i]['goto_err'].set(sav[i]['goto_err'])
 
 if __name__ == '__main__':
     root = Tk()
