@@ -3,7 +3,7 @@
 # This Python/Tk script allows editing of data intended to be used by the
 # Xilinx AXI Traffic Generator IP by generating .coe files from the input data.
 #
-# Copyright (C) 2018 Patricio Carr
+# Copyright (C) 2018 Patricio Carr - pat@tuxengineering.com
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -142,7 +142,7 @@ class Application:
                     width=4, \
                     ).grid(column=8,row=i+5)
 
-        self.rows[MAX_ROWS-1]['address'].set('0xFFFFFFFF')
+        self.rows[MAX_ROWS-1]['address'].set('FFFFFFFF')
         text_frame.grid(row=6, columnspan=5)
 
         buttons_frame = Frame(self.root, bd=5, relief=GROOVE, padx=5, pady=5)
@@ -152,10 +152,12 @@ class Application:
         self.loadButton.grid(row=0, column=1, padx=20)
         self.saveButton = Button(buttons_frame, text='Save', command=self.saveFile)
         self.saveButton.grid(row=0, column=2, padx=20)
-        self.dumpButton = Button(buttons_frame, text='Export .coe', command=self.dumpCoe)
+        self.dumpButton = Button(buttons_frame, text='Export', command=self.dumpCoe)
         self.dumpButton.grid(row=0, column=3, padx=20)
+        self.readButton = Button(buttons_frame, text='Import', command=self.help_dialog)
+        self.readButton.grid(row=0, column=4, padx=20)
         self.helpButton = Button(buttons_frame, text='Help', command=self.help_dialog)
-        self.helpButton.grid(row=0, column=4, padx=20)
+        self.helpButton.grid(row=0, column=5, padx=20)
         buttons_frame.grid()
 
     def to_hex(self, string):
@@ -168,6 +170,19 @@ class Application:
             int_val = 0
         hex_str = "{0:08x}".format(int_val)
         return hex_str
+
+    def readCoe(self, filename):
+        array=[]
+        with open(filename, 'r') as f:
+            for line in iter(f.readline, ''):
+                if 'radix' in line:
+                    # TODO: read and set radix from file
+                    # For now, assume hex
+                    continue
+                if 'memory' in line:
+                    continue
+                array.append(line.strip())
+        return array
 
     def writeCoe(self, filetype, array):
         with open(filetype+'.coe', 'wb') as f:
@@ -237,7 +252,11 @@ class Application:
                 self.rows[i]['goto_err'].set(sav[i]['goto_err'])
 
     def help_dialog(self):
-        messagebox.showinfo("Help", self.help_text)
+        array = self.readCoe('addr.coe')
+        for i in range(MAX_ROWS):
+            self.rows[i]['address'].set(array[i])
+
+        #messagebox.showinfo("Help", self.help_text)
 
 if __name__ == '__main__':
     root = Tk()
