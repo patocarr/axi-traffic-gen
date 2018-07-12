@@ -4,7 +4,7 @@ File editor for the Xilinx AXI Traffic Generator IP
 
 This Python/Tk script helps manage .coe files inputs to the ATG. It's limited to AXI-Lite transactions.
 
-[Screenshot](images/screenshot.png)
+[Screenshot](images/atg.png)
 
 ### Running
 
