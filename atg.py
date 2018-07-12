@@ -40,6 +40,7 @@ class Application:
 
     def init_vars(self):
         self.axi_lite_type = IntVar()
+        self.radix = 'hex'
         self.rows = [ \
                 { \
                 'check': 0, \
@@ -173,18 +174,33 @@ class Application:
         return hex_str
 
     def readCoe(self, filename):
+        """ Read from file into array. Get radix from file and parse vectors accordingly.
+        """
         array=[]
+        radix_re = re.compile(r'\d+')
         with open(filename, 'r') as f:
             for line in iter(f.readline, ''):
-                if 'radix' in line:
-                    # TODO: read and set radix from file
-                    # For now, assume hex
+                if 'radix' in line:                    # Find radix literal and
+                    radix = radix_re.findall(line)[0]  # Extract from returned list
+                    if radix == '16':
+                        self.radix = 'hex'
+                    elif radix == '2':
+                        self.radix = 'bin'
+                    else: #radix == '10':
+                        self.radix = 'dec'
                     continue
                 if 'memory' in line:
                     continue
-                if ';' in line:
+                if ';' == line.strip():         # Ignore lines with only ';'
                     continue
-                array.append(line.strip())
+                vec = line.replace(";", "").strip()     # Remove any ';' chars
+                if self.radix == 'hex':
+                    pass
+                elif self.radix == 'bin':
+                    vec = '{0:08x}'.format(int(vec, 2))
+                elif self.radix == 'dec':
+                    vec = '{0:08x}'.format(int(vec, 10))
+                array.append(vec)
         return array
 
     def writeCoe(self, filetype, array):

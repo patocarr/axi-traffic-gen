@@ -38,18 +38,18 @@ To run the script:
 - Save: Saves a data.atg file with the entire session presumably to resume at a later date. Note: It will overwrite a previously saved data.atg!
 - Export: Saves two .coe files (addr.coe, data.coe) if in System Init mode, or all four .coe files (addr.coe, data.coe, mask.coe & ctrl.coe) if in Test Mode. Note: It will overwrite previously saved .coe files without warning.
 - Import: Opens an import dialog that allows loading a .coe file to a selected column, ie. address, data, mask or control and populates the respective fields.
+
 ![](images/import-coe.png)
+
 - Help: Basic information regarding modes.
 
 ### Limitations:
 
 - Up to 25 transactions are possible, but this can easily be modified by setting the MAX_ROWS constant in the code. The ATG is limited to 256. I still haven't figured out exactly how to add scrollbars to show more transactions, and this is the reason behind the limitation, besides never needing more. Ping me if you know how.
-- Importing .coe files assumes they are in hexadecimal radix and ignores any declaration within the file. In the future, the imported file's radix will be respected.
 
 ### To-do:
 - Add buttons to allow insertion and deletion of an entire row.
 - Add scrollbars to allow more rows.
-- Respect file radix when importing .coe files.
 
 For information on the AXI Traffic Generator, please refer to Xilinx PG125 document.
 
