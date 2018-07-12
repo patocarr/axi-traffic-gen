@@ -155,7 +155,7 @@ class Application:
         self.saveButton.grid(row=0, column=2, padx=20)
         self.dumpButton = Button(buttons_frame, text='Export', command=self.exportCoe)
         self.dumpButton.grid(row=0, column=3, padx=20)
-        self.readButton = Button(buttons_frame, text='Import', command=self.import_dialog)
+        self.readButton = Button(buttons_frame, text='Import...', command=self.import_dialog)
         self.readButton.grid(row=0, column=4, padx=20)
         self.helpButton = Button(buttons_frame, text='Help', command=self.help_dialog)
         self.helpButton.grid(row=0, column=5, padx=20)
