@@ -252,6 +252,7 @@ class Application:
 
     def saveFile(self):
         sav = []
+        sav.append(self.axi_lite_type.get())
         for i in range(MAX_ROWS):
             sav.append({ \
                     'address'   : self.rows[i]['address'].get(), \
@@ -273,6 +274,8 @@ class Application:
             sav = pickle.load(f)
             load_ok = True
         if load_ok:
+            self.axi_lite_type.set(sav[0])
+            sav.pop(0)
             for i in range(MAX_ROWS):
                 self.rows[i]['address'].set(sav[i]['address'])
                 self.rows[i]['data'].set(sav[i]['data'])
