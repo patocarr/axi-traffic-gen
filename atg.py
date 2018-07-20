@@ -216,7 +216,7 @@ class Application:
     def row_to_ctrl(self, row):
         """ Merge fields into control word """
         ctrl = (row['goto_ok'].get() << 8) + row['goto_err'].get()
-        if row['read_write'].get() == False:
+        if row['read_write'].get() == 1:
             ctrl = ctrl + (1 << 16)
         if row['inc_error'].get() == True:
             ctrl = ctrl + (1 << 17)
