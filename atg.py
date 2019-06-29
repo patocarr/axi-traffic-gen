@@ -191,11 +191,12 @@ class Application:
                     continue
                 if 'memory' in line:
                     continue
-                if ';' == line.strip():         # Ignore lines with only ';'
+                if ';' in line[0]:         # Ignore lines with only ';'
                     continue
                 if line.isspace():
                     continue
                 vec = line.replace(";", "").strip()     # Remove any ';' chars
+                vec = line.replace(",", "").strip()     # Remove any ';' chars
                 if self.radix == 'hex':
                     pass
                 elif self.radix == 'bin':
