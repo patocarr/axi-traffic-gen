@@ -196,7 +196,7 @@ class Application:
                 if line.isspace():
                     continue
                 vec = line.replace(";", "").strip()     # Remove any ';' chars
-                vec = line.replace(",", "").strip()     # Remove any ';' chars
+                vec = vec.replace(",", "").strip()      # Remove any ',' chars
                 if self.radix == 'hex':
                     pass
                 elif self.radix == 'bin':
