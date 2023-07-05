@@ -17,14 +17,14 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+import re
 import pickle
 from tkinter import *
 from tkinter import messagebox
 import atg_import
 
 PROGRAM_NAME = 'AXI Traffic Generator'
-MAX_ROWS = 25
+MAX_ROWS = 255
 
 class Application:
     def __init__(self, root):
@@ -77,7 +77,18 @@ class Application:
                 variable=self.axi_lite_type, value=1).grid(sticky=W)
         type_frame.grid(row=0, column=0)
 
-        text_frame = Frame(self.root, bd=5, relief=GROOVE, padx=15, pady=15)
+        # Create a frame for the canvas and scrollbar(s).
+        frame2 = Frame(self.root, bd=2, relief=FLAT)
+        frame2.grid(row=3, column=0, sticky=NW)
+        # Add a canvas in that frame.
+        canvas = Canvas(frame2)
+        canvas.grid(row=0, column=0)
+        # Create a vertical scrollbar linked to the canvas.
+        vsbar = Scrollbar(frame2, orient=VERTICAL, command=canvas.yview)
+        vsbar.grid(row=0, column=1, sticky=NS)
+        canvas.configure(yscrollcommand=vsbar.set)
+
+        text_frame = Frame(canvas, bd=5, relief=GROOVE, padx=15, pady=15)
         Label(text_frame, text="Entry").grid(column=0,row=0)
         Label(text_frame, text="Address").grid(column=1,row=0)
         Label(text_frame, text="Data").grid(column=2,row=0)
@@ -146,6 +157,15 @@ class Application:
 
         self.rows[MAX_ROWS-1]['address'].set('FFFFFFFF')
         text_frame.grid(row=6, columnspan=5)
+
+        # Create canvas window to hold the buttons_frame.
+        canvas.create_window((0,0), window=text_frame, anchor=NW)
+        text_frame.update_idletasks()  # Needed to make bbox info available.
+        bbox = canvas.bbox(ALL)  # Get bounding box of canvas with Buttons.
+        # Define the scrollable region as entire canvas with only the desired
+        # number of rows and columns displayed.
+        w, h = bbox[2]-bbox[1], bbox[3]-bbox[1]
+        canvas.configure(scrollregion=bbox, width=w, height=255)
 
         buttons_frame = Frame(self.root, bd=5, relief=GROOVE, padx=5, pady=5)
         self.quitButton = Button(buttons_frame, text='Quit', command=quit)
